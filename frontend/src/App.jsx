@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   login,
   logout,
@@ -7,6 +7,7 @@ import {
   tryRefreshWithAccessToken,
   tryRefreshWithoutToken,
   tryRefreshWithCurrentRefreshToken,
+  tryRefreshWithOldRefreshTokenAfterLogout,
   breakRefreshToken,
   tokenStatus,
 } from './api/authApi';
@@ -19,6 +20,7 @@ function now() {
 function App() {
   const [logs, setLogs] = useState([]);
   const [status, setStatus] = useState(tokenStatus());
+  const logBoxRef = useRef(null);
 
   const statusText = useMemo(() => {
     return JSON.stringify(status, null, 2);
@@ -36,6 +38,12 @@ function App() {
       window.removeEventListener('poc-log', handler);
     };
   }, []);
+
+  useEffect(() => {
+    if (logBoxRef.current) {
+      logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   function addLog(message) {
     setLogs((prev) => [...prev, `${now()} ${message}`]);
@@ -74,7 +82,7 @@ function App() {
   }
 
   async function handleLogin() {
-    await runAction('로그인', login);
+    await runAction('TC-01 로그인 및 토큰 발급', login);
   }
 
   async function handleCallApis() {
@@ -90,19 +98,26 @@ function App() {
   }
 
   async function handleTryRefreshWithAccessToken() {
-    await runAction('Access Token으로 Refresh 시도', tryRefreshWithAccessToken);
+    await runAction('TC-04 Access Token으로 Refresh 시도', tryRefreshWithAccessToken);
   }
 
   async function handleTryRefreshWithoutToken() {
-    await runAction('Refresh Token 없이 Refresh 시도', tryRefreshWithoutToken);
+    await runAction('TC-05 Refresh Token 없이 Refresh 시도', tryRefreshWithoutToken);
   }
 
   async function handleLogout() {
-    await runAction('로그아웃', logout);
+    await runAction('TC-07 로그아웃', logout);
   }
 
-  async function handleRefreshAfterLogout() {
-    await runAction('현재 Refresh Token으로 Refresh 시도', tryRefreshWithCurrentRefreshToken);
+  async function handleRefreshWithCurrentRefreshToken() {
+    await runAction('현재 Refresh Token으로 수동 Refresh 시도', tryRefreshWithCurrentRefreshToken);
+  }
+
+  async function handleRefreshWithOldTokenAfterLogout() {
+    await runAction(
+      'TC-07 로그아웃 전 Refresh Token 재사용 시도',
+      tryRefreshWithOldRefreshTokenAfterLogout,
+    );
   }
 
   function handleBreakRefreshToken() {
@@ -126,8 +141,8 @@ function App() {
       <section className="hero">
         <h1>JWT Refresh Single-Flight PoC</h1>
         <p>
-          Access Token 만료 후 API 8개가 동시에 실패했을 때 Refresh 요청을 1회로 제한하고,
-          실패 요청을 새 Access Token으로 재시도하는지 검증합니다.
+          Access Token 만료 시 요청 전 Refresh를 먼저 수행하고, 예외적으로 401이 발생해도
+          Refresh 1회 + 대기열 + 재시도로 복구되는지 검증합니다.
         </p>
       </section>
 
@@ -136,22 +151,23 @@ function App() {
 
         <div className="button-grid">
           <button onClick={handleLogin}>1. 로그인</button>
-          <button onClick={handleCallApis}>2. API 8개 동시 호출</button>
+          <button onClick={handleCallApis}>2. API 8개 동시 호출 / 선 Refresh 검증</button>
           <button onClick={handleTryRefreshWithAccessToken}>
             3. Access Token으로 Refresh 시도
           </button>
           <button onClick={handleTryRefreshWithoutToken}>
             4. Refresh Token 없이 Refresh 시도
           </button>
-          <button onClick={handleBreakRefreshToken}>
-            5. Refresh Token 깨뜨리기
-          </button>
+          <button onClick={handleBreakRefreshToken}>5. Refresh Token 깨뜨리기</button>
           <button onClick={handleLogout}>6. 로그아웃</button>
-          <button onClick={handleRefreshAfterLogout}>
-            7. 현재 Refresh Token으로 Refresh 시도
+          <button onClick={handleRefreshWithCurrentRefreshToken}>
+            7. 현재 Refresh Token으로 수동 Refresh
           </button>
-          <button onClick={handleLocalLogout}>8. 프론트 토큰 제거</button>
-          <button onClick={handleClearLogs}>9. 로그 지우기</button>
+          <button onClick={handleRefreshWithOldTokenAfterLogout}>
+            8. 로그아웃 전 Refresh Token 재사용 시도
+          </button>
+          <button onClick={handleLocalLogout}>9. 프론트 토큰 제거</button>
+          <button onClick={handleClearLogs}>10. 로그 지우기</button>
           <button onClick={refreshTokenStatus}>토큰 상태 새로고침</button>
         </div>
       </section>
@@ -162,20 +178,67 @@ function App() {
           <pre className="status">{statusText}</pre>
 
           <div className="notice">
-            <strong>시연 순서</strong>
+            <strong>권장 테스트 시나리오</strong>
+
+            <h3>TC-01. 로그인 및 토큰 발급</h3>
             <ol>
-              <li>로그인합니다.</li>
-              <li>Access Token 만료시간 이상 대기합니다. 예: 10초</li>
-              <li>API 8개 동시 호출을 누릅니다.</li>
-              <li>Network 탭에서 /api/auth/refresh가 1회만 발생하는지 확인합니다.</li>
-              <li>기존 실패 요청들이 새 Access Token으로 재시도되는지 확인합니다.</li>
+              <li>[로그인]을 클릭합니다.</li>
+              <li>토큰 상태 영역에서 Access Token과 Refresh Token 존재 여부를 확인합니다.</li>
+              <li>Network에서 POST /api/auth/login 200 응답을 확인합니다.</li>
+            </ol>
+
+            <h3>TC-02. 유효 토큰 상태 API 호출</h3>
+            <ol>
+              <li>로그인 직후 [API 8개 동시 호출]을 클릭합니다.</li>
+              <li>GET /api/test/data1~8이 모두 200인지 확인합니다.</li>
+              <li>이때 Refresh 요청은 발생하지 않아야 합니다.</li>
+            </ol>
+
+            <h3>TC-03. 만료 후 선 Refresh 확인</h3>
+            <ol>
+              <li>로그인 후 Access Token 만료시간 이상 대기합니다. 예: 10초</li>
+              <li>[API 8개 동시 호출]을 클릭합니다.</li>
+              <li>[TOKEN-CHECK], [PRE-REFRESH] 로그가 발생하는지 확인합니다.</li>
+              <li>/api/auth/refresh가 1회만 발생하는지 확인합니다.</li>
+              <li>/api/test/data1~8이 새 Access Token으로 200 응답되는지 확인합니다.</li>
+            </ol>
+
+            <h3>TC-04. Access Token으로 Refresh 차단</h3>
+            <ol>
+              <li>[Access Token으로 Refresh 시도]를 클릭합니다.</li>
+              <li>401 응답이 발생하는지 확인합니다.</li>
+              <li>Access Token으로 새 Access Token이 발급되면 비정상입니다.</li>
+            </ol>
+
+            <h3>TC-05. Refresh Token 없이 Refresh 차단</h3>
+            <ol>
+              <li>[Refresh Token 없이 Refresh 시도]를 클릭합니다.</li>
+              <li>401 응답이 발생하는지 확인합니다.</li>
+              <li>재발급 근거 없이 Access Token이 발급되면 비정상입니다.</li>
+            </ol>
+
+            <h3>TC-06. Refresh 실패 시 정리</h3>
+            <ol>
+              <li>[로그인]을 클릭합니다.</li>
+              <li>[Refresh Token 깨뜨리기]를 클릭합니다.</li>
+              <li>Access Token 만료시간 이상 대기합니다.</li>
+              <li>[API 8개 동시 호출]을 클릭합니다.</li>
+              <li>Refresh 실패 후 토큰과 대기 요청이 정리되는지 확인합니다.</li>
+            </ol>
+
+            <h3>TC-07. 로그아웃 후 Refresh Token 재사용 차단</h3>
+            <ol>
+              <li>[로그인]을 클릭합니다.</li>
+              <li>[로그아웃]을 클릭합니다.</li>
+              <li>[로그아웃 전 Refresh Token 재사용 시도]를 클릭합니다.</li>
+              <li>401 응답이 발생하는지 확인합니다.</li>
             </ol>
           </div>
         </div>
 
         <div className="panel">
           <h2>화면 로그</h2>
-          <div className="log-box">
+          <div className="log-box" ref={logBoxRef}>
             {logs.length === 0 ? (
               <div className="empty">아직 로그가 없습니다.</div>
             ) : (

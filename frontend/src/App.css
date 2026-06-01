@@ -20,15 +20,22 @@ button {
   background: #ffffff;
   padding: 10px 12px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 button:hover {
   background: #eef3f8;
 }
 
+code {
+  background: #edf2f7;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
 .page {
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 28px;
 }
@@ -69,31 +76,41 @@ button:hover {
 
 .layout {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 460px 1fr;
   gap: 18px;
 }
 
 .status {
-  min-height: 140px;
+  min-height: 170px;
   border-radius: 10px;
   background: #111827;
   color: #e5e7eb;
   padding: 14px;
   overflow: auto;
+  font-size: 13px;
 }
 
 .notice {
   margin-top: 16px;
   color: #334155;
   line-height: 1.6;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.notice h3 {
+  margin: 18px 0 6px;
+  font-size: 15px;
 }
 
 .notice ol {
   padding-left: 20px;
+  margin-top: 6px;
 }
 
 .log-box {
-  height: 520px;
+  height: 760px;
   overflow: auto;
   border-radius: 10px;
   background: #111827;
@@ -112,7 +129,7 @@ button:hover {
   color: #9ca3af;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .button-grid {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
