@@ -1,0 +1,33 @@
+@startuml
+title Access Token 만료 후 단일 요청 Refresh 정상 흐름
+
+actor User as U
+participant "Frontend\nAxios Interceptor" as FE
+participant "Protected API" as API
+participant "Auth API\n/refresh" as AUTH
+database "Refresh Token Store" as STORE
+
+U -> FE: 보호 API 요청
+FE -> API: GET /api/test/data1\nAuthorization: Bearer expiredAccessToken
+API -> API: Access Token 만료 확인
+API --> FE: 401 Unauthorized
+
+FE -> FE: 401 감지
+FE -> AUTH: POST /api/auth/refresh\nrefreshToken 전달
+AUTH -> AUTH: Refresh Token 서명/만료/type 검증
+AUTH -> STORE: Refresh Token 존재/폐기 여부 대조
+STORE --> AUTH: 유효함
+AUTH -> AUTH: 새 Access Token 발급
+AUTH --> FE: 200 OK\nnewAccessToken
+
+FE -> FE: 새 Access Token 저장
+FE -> API: GET /api/test/data1 재시도\nAuthorization: Bearer newAccessToken
+API -> API: 새 Access Token 검증
+API --> FE: 200 OK
+FE --> U: 화면 정상 복구
+
+note over FE,AUTH
+Refresh 요청은 Refresh Token 또는
+세션 식별값을 근거로 수행되어야 한다.
+만료된 Access Token만으로 재발급되면 안 된다.
+end note

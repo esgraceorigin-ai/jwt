@@ -1,0 +1,43 @@
+@startuml
+title 비정상 흐름: Refresh는 1회이나 최초 요청만 복구
+
+actor User as U
+participant "Frontend\n불완전한 Refresh 처리" as FE
+participant "Protected API" as API
+participant "Auth API\n/refresh" as AUTH
+
+U -> FE: 메뉴 진입
+FE -> API: data1 요청\nexpiredAccessToken
+FE -> API: data2 요청\nexpiredAccessToken
+FE -> API: data3 요청\nexpiredAccessToken
+FE -> API: data4 요청\nexpiredAccessToken
+FE -> API: data5 요청\nexpiredAccessToken
+FE -> API: data6 요청\nexpiredAccessToken
+FE -> API: data7 요청\nexpiredAccessToken
+FE -> API: data8 요청\nexpiredAccessToken
+
+API --> FE: 401 data1
+API --> FE: 401 data2
+API --> FE: 401 data3
+API --> FE: 401 data4
+API --> FE: 401 data5
+API --> FE: 401 data6
+API --> FE: 401 data7
+API --> FE: 401 data8
+
+FE -> AUTH: POST /api/auth/refresh\n1회만 수행
+AUTH --> FE: 200 OK\nnewAccessToken
+
+FE -> API: data1만 재시도\nnewAccessToken
+API --> FE: 200 OK data1
+
+FE --> U: data2~data8 실패 또는 화면 일부 오류
+
+note over FE
+Refresh 요청을 1회로 줄이는 것만으로는 부족하다.
+
+나머지 실패 요청을 대기열에 보관하고,
+새 Access Token 발급 후 모두 재시도해야 한다.
+end note
+
+@enduml

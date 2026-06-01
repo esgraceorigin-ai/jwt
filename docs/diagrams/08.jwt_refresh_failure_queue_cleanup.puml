@@ -1,0 +1,40 @@
+@startuml
+title Refresh 실패 시 대기열 정리 흐름
+
+actor User as U
+participant "Frontend\nInterceptor" as FE
+participant "Failed Queue" as Q
+participant "Protected API" as API
+participant "Auth API\n/refresh" as AUTH
+
+U -> FE: API 8개 동시 호출\nexpiredAccessToken
+
+FE -> API: data1 요청
+FE -> API: data2 요청
+FE -> API: data3 요청
+
+API --> FE: 401 data1
+FE -> AUTH: POST /api/auth/refresh\ninvalidRefreshToken
+
+API --> FE: 401 data2
+FE -> Q: data2 대기 등록
+
+API --> FE: 401 data3
+FE -> Q: data3 대기 등록
+
+AUTH --> FE: 401 Unauthorized\nRefresh 실패
+
+FE -> Q: 대기 요청 전체 실패 처리
+FE -> FE: Access Token 제거
+FE -> FE: Refresh Token 제거
+FE -> FE: isRefreshing = false
+FE --> U: 세션 만료 안내 또는 로그인 이동
+
+note over FE,Q
+Refresh 실패 시 대기 요청을 방치하면
+무한 로딩 또는 pending 상태가 발생할 수 있다.
+
+따라서 실패 시 대기열 전체를 정리해야 한다.
+end note
+
+@enduml

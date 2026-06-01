@@ -1,0 +1,28 @@
+@startuml
+title JWT 정상 로그인 및 API 요청 흐름
+
+actor User as U
+participant "Frontend\nBrowser/App" as FE
+participant "Backend\nAuth API" as AUTH
+participant "Backend\nProtected API" as API
+database "Token Store\nDB/Redis/Session" as STORE
+
+U -> FE: 로그인 정보 입력
+FE -> AUTH: POST /api/auth/login\nusername/password
+AUTH -> AUTH: 사용자 인증 검증
+AUTH -> AUTH: Access Token 생성\ntype=access
+AUTH -> AUTH: Refresh Token 생성\ntype=refresh
+AUTH -> STORE: Refresh Token 저장\n또는 jti/hash 저장
+AUTH --> FE: accessToken + refreshToken 반환
+
+FE -> API: GET /api/test/data1\nAuthorization: Bearer accessToken
+API -> API: Access Token 서명/만료/type 검증
+API --> FE: 200 OK\n업무 데이터 반환
+FE --> U: 화면 표시
+
+note over FE,API
+Access Token이 유효한 상태에서는
+Refresh 요청이 발생하지 않아야 한다.
+end note
+
+@enduml

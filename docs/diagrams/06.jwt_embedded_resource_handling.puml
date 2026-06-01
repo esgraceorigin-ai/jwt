@@ -1,0 +1,64 @@
+@startuml
+title Embedded Resource 및 다중 요청 상황 처리 기준
+
+actor User as U
+participant "Browser/JMeter" as B
+participant "Static Resource\nJS/CSS/Image/Font" as STATIC
+participant "Protected API" as API
+participant "Frontend\nInterceptor" as FE
+participant "Auth API\n/refresh" as AUTH
+
+U -> B: 화면 진입
+
+B -> STATIC: GET /static/app.js
+STATIC --> B: 200 OK
+
+B -> STATIC: GET /static/style.css
+STATIC --> B: 200 OK
+
+B -> STATIC: GET /images/logo.png
+STATIC --> B: 200 OK
+
+B -> FE: 화면 스크립트 실행
+
+FE -> API: GET /api/menu\nexpiredAccessToken
+FE -> API: GET /api/user\nexpiredAccessToken
+FE -> API: GET /api/permission\nexpiredAccessToken
+FE -> API: GET /api/dashboard\nexpiredAccessToken
+
+API --> FE: 401 /api/menu
+FE -> FE: Refresh 시작
+
+API --> FE: 401 /api/user
+FE -> FE: failedQueue 등록
+
+API --> FE: 401 /api/permission
+FE -> FE: failedQueue 등록
+
+API --> FE: 401 /api/dashboard
+FE -> FE: failedQueue 등록
+
+FE -> AUTH: POST /api/auth/refresh\nrefreshToken
+AUTH --> FE: 200 OK\nnewAccessToken
+
+FE -> API: /api/menu 재시도\nnewAccessToken
+FE -> API: /api/user 재시도\nnewAccessToken
+FE -> API: /api/permission 재시도\nnewAccessToken
+FE -> API: /api/dashboard 재시도\nnewAccessToken
+
+API --> FE: 200 OK
+API --> FE: 200 OK
+API --> FE: 200 OK
+API --> FE: 200 OK
+
+note over B,STATIC
+정적 리소스는 가능하면
+JWT 인증/Refresh 흐름과 분리한다.
+end note
+
+note over FE,AUTH
+업무 API가 여러 개 실패해도
+Refresh는 1회로 단일화한다.
+end note
+
+@enduml

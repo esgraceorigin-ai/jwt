@@ -1,0 +1,24 @@
+@startuml
+title Access Token으로 Refresh 시도 시 거부되어야 하는 흐름
+
+actor Tester as T
+participant "Client" as C
+participant "Auth API\n/refresh" as AUTH
+
+T -> C: Access Token을 refreshToken 필드에 입력
+C -> AUTH: POST /api/auth/refresh\n{ refreshToken: accessToken }
+
+AUTH -> AUTH: JWT 서명 검증
+AUTH -> AUTH: token type 확인
+AUTH -> AUTH: type=access 확인
+
+AUTH --> C: 401 Unauthorized\nToken is not refresh token
+
+note over AUTH
+Refresh API는 type=refresh 토큰만 허용해야 한다.
+
+Access Token으로 새 Access Token이 발급되면
+Access Token과 Refresh Token의 역할 분리가 깨진다.
+end note
+
+@enduml

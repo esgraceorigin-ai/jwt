@@ -1,0 +1,84 @@
+@startuml
+title 정상 개선 흐름: Refresh Single-Flight + Failed Queue
+
+actor User as U
+participant "Frontend\nAxios Interceptor" as FE
+participant "Failed Queue" as Q
+participant "Protected API" as API
+participant "Auth API\n/refresh" as AUTH
+database "Refresh Token Store" as STORE
+
+U -> FE: 메뉴 진입\nAPI 8개 동시 호출
+
+FE -> API: data1 요청\nexpiredAccessToken
+FE -> API: data2 요청\nexpiredAccessToken
+FE -> API: data3 요청\nexpiredAccessToken
+FE -> API: data4 요청\nexpiredAccessToken
+FE -> API: data5 요청\nexpiredAccessToken
+FE -> API: data6 요청\nexpiredAccessToken
+FE -> API: data7 요청\nexpiredAccessToken
+FE -> API: data8 요청\nexpiredAccessToken
+
+API --> FE: 401 data1
+FE -> FE: isRefreshing == false
+FE -> FE: isRefreshing = true
+FE -> AUTH: POST /api/auth/refresh\nrefreshToken
+
+API --> FE: 401 data2
+FE -> Q: data2 대기 등록
+
+API --> FE: 401 data3
+FE -> Q: data3 대기 등록
+
+API --> FE: 401 data4
+FE -> Q: data4 대기 등록
+
+API --> FE: 401 data5
+FE -> Q: data5 대기 등록
+
+API --> FE: 401 data6
+FE -> Q: data6 대기 등록
+
+API --> FE: 401 data7
+FE -> Q: data7 대기 등록
+
+API --> FE: 401 data8
+FE -> Q: data8 대기 등록
+
+AUTH -> AUTH: Refresh Token 서명/만료/type 검증
+AUTH -> STORE: Refresh Token 저장소 대조
+STORE --> AUTH: 유효함
+AUTH -> AUTH: 새 Access Token 발급
+AUTH --> FE: 200 OK\nnewAccessToken
+
+FE -> FE: 새 Access Token 저장
+FE -> API: data1 재시도\nnewAccessToken
+FE -> Q: 대기 요청에 newAccessToken 전달
+Q -> API: data2 재시도\nnewAccessToken
+Q -> API: data3 재시도\nnewAccessToken
+Q -> API: data4 재시도\nnewAccessToken
+Q -> API: data5 재시도\nnewAccessToken
+Q -> API: data6 재시도\nnewAccessToken
+Q -> API: data7 재시도\nnewAccessToken
+Q -> API: data8 재시도\nnewAccessToken
+
+API --> FE: 200 OK data1
+API --> Q: 200 OK data2
+API --> Q: 200 OK data3
+API --> Q: 200 OK data4
+API --> Q: 200 OK data5
+API --> Q: 200 OK data6
+API --> Q: 200 OK data7
+API --> Q: 200 OK data8
+
+FE -> FE: isRefreshing = false
+FE --> U: 화면 정상 복구
+
+note over FE,Q
+핵심:
+Refresh 요청은 1회만 수행한다.
+동시 실패 요청은 대기열에 보관한다.
+새 Access Token 발급 후 모두 재시도한다.
+end note
+
+@enduml

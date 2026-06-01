@@ -1,0 +1,57 @@
+@startuml
+title 비정상 흐름: 실패 요청 수만큼 Refresh 요청 중복 발생
+
+actor User as U
+participant "Frontend\n각 요청별 오류 처리" as FE
+participant "Protected API" as API
+participant "Auth API\n/refresh" as AUTH
+database "Token Store" as STORE
+
+U -> FE: 메뉴 진입
+FE -> API: GET /api/test/data1\nexpiredAccessToken
+FE -> API: GET /api/test/data2\nexpiredAccessToken
+FE -> API: GET /api/test/data3\nexpiredAccessToken
+FE -> API: GET /api/test/data4\nexpiredAccessToken
+FE -> API: GET /api/test/data5\nexpiredAccessToken
+FE -> API: GET /api/test/data6\nexpiredAccessToken
+FE -> API: GET /api/test/data7\nexpiredAccessToken
+FE -> API: GET /api/test/data8\nexpiredAccessToken
+
+API --> FE: 401 data1
+API --> FE: 401 data2
+API --> FE: 401 data3
+API --> FE: 401 data4
+API --> FE: 401 data5
+API --> FE: 401 data6
+API --> FE: 401 data7
+API --> FE: 401 data8
+
+FE -> AUTH: POST /refresh #1
+FE -> AUTH: POST /refresh #2
+FE -> AUTH: POST /refresh #3
+FE -> AUTH: POST /refresh #4
+FE -> AUTH: POST /refresh #5
+FE -> AUTH: POST /refresh #6
+FE -> AUTH: POST /refresh #7
+FE -> AUTH: POST /refresh #8
+
+AUTH -> STORE: Refresh Token 검증 반복
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+AUTH --> FE: newAccessToken
+
+note over FE,AUTH
+문제점:
+API 요청 8개가 실패했다고
+Refresh 요청도 8회 발생한다.
+
+이는 인증 서버, DB, Redis,
+네트워크 부하를 불필요하게 증가시킨다.
+end note
+
+@enduml

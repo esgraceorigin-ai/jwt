@@ -1,122 +1,95 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { login, logoutLocal, callTestApis } from './api/authApi';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setLogs((prev) => [
+        `${new Date().toLocaleTimeString()} ${event.detail}`,
+        ...prev,
+      ]);
+    };
+
+    window.addEventListener('poc-log', handler);
+
+    return () => {
+      window.removeEventListener('poc-log', handler);
+    };
+  }, []);
+
+  const addLog = (message) => {
+    setLogs((prev) => [
+      `${new Date().toLocaleTimeString()} ${message}`,
+      ...prev,
+    ]);
+  };
+
+  const handleLogin = async () => {
+    try {
+      await login();
+      addLog('[LOGIN] 로그인 성공. Access/Refresh Token 저장');
+    } catch (error) {
+      addLog(`[LOGIN-FAIL] ${error.message}`);
+    }
+  };
+
+  const handleCallApis = async () => {
+    addLog('[TEST] API 8개 동시 호출 시작');
+
+    const results = await callTestApis();
+
+    const successCount = results.filter((r) => r.status === 'fulfilled').length;
+    const failCount = results.filter((r) => r.status === 'rejected').length;
+
+    addLog(`[TEST-END] 성공=${successCount}, 실패=${failCount}`);
+  };
+
+  const handleClear = () => {
+    setLogs([]);
+  };
+
+  const handleLogoutLocal = () => {
+    logoutLocal();
+    addLog('[LOCAL-LOGOUT] 프론트 토큰 제거');
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
+      <h1>JWT Refresh Single-Flight PoC</h1>
 
-      <div className="ticks"></div>
+      <p>
+        Access Token 만료 후 API 8개를 동시에 호출했을 때 Refresh 요청이
+        1번만 발생하고, 실패 요청들이 새 토큰으로 재시도되는지 확인합니다.
+      </p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={handleLogin}>1. 로그인</button>
+        <button onClick={handleCallApis}>2. API 8개 동시 호출</button>
+        <button onClick={handleLogoutLocal}>프론트 토큰 제거</button>
+        <button onClick={handleClear}>로그 지우기</button>
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <div
+        style={{
+          border: '1px solid #ccc',
+          padding: 16,
+          height: 500,
+          overflow: 'auto',
+          background: '#111',
+          color: '#eee',
+          fontFamily: 'monospace',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {logs.map((log, index) => (
+          <div key={`${log}-${index}`}>{log}</div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
