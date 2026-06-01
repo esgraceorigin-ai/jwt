@@ -1,0 +1,70 @@
+@startuml
+title D12 정상 개선 흐름: 요청 전 Refresh Single-Flight
+
+actor User as U
+participant "Frontend\nAPI Client / Interceptor" as FE
+participant "Refresh Promise\nShared Lock" as RP
+participant "Auth API\n/refresh" as AUTH
+database "Refresh Token Store\nDB/Redis/Session" as STORE
+participant "Protected API" as API
+
+U -> FE: API 8개 동시 호출 시도
+
+FE -> FE: data1 요청 전\nAccess Token exp 확인
+FE -> FE: 만료 또는 만료 임박 확인
+FE -> RP: Refresh Promise 생성
+FE -> AUTH: POST /api/auth/refresh\nrefreshToken 또는 cookie/session id
+
+FE -> FE: data2 요청 전\nAccess Token exp 확인
+FE -> RP: 기존 Refresh Promise 대기
+
+FE -> FE: data3 요청 전\nAccess Token exp 확인
+FE -> RP: 기존 Refresh Promise 대기
+
+FE -> FE: data4~data8 요청 전\nAccess Token exp 확인
+FE -> RP: 기존 Refresh Promise 대기
+
+AUTH -> AUTH: Refresh Token 서명/만료/type 검증
+AUTH -> STORE: Refresh Token 저장소 대조\n폐기 여부 확인
+STORE --> AUTH: 유효함
+AUTH -> AUTH: 새 Access Token 발급
+AUTH --> RP: 200 OK\nnewAccessToken
+
+RP --> FE: 대기 중인 요청들에\nnewAccessToken 전달
+
+FE -> API: GET /api/test/data1\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data2\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data3\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data4\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data5\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data6\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data7\nAuthorization: Bearer newAccessToken
+FE -> API: GET /api/test/data8\nAuthorization: Bearer newAccessToken
+
+API --> FE: 200 OK data1
+API --> FE: 200 OK data2
+API --> FE: 200 OK data3
+API --> FE: 200 OK data4
+API --> FE: 200 OK data5
+API --> FE: 200 OK data6
+API --> FE: 200 OK data7
+API --> FE: 200 OK data8
+
+FE --> U: 화면 정상 표시\n성공=8, 실패=0
+
+note over FE,RP
+핵심:
+API 요청을 먼저 실패시키지 않고,
+요청 전 Access Token 만료를 감지한다.
+
+Refresh는 1회만 수행하고,
+나머지 요청은 같은 Refresh Promise를 기다린다.
+end note
+
+note over AUTH,STORE
+Refresh Token은 서버 저장소와 대조한다.
+저장 방식은 운영 정책에 따라
+DB, Redis, Session Store 등이 될 수 있다.
+end note
+
+@enduml

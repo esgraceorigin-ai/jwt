@@ -1,0 +1,36 @@
+@startuml
+title D13 PoC 토큰 저장 방식과 운영 적용 경계
+
+participant "Frontend PoC\nJS Memory" as MEM
+participant "Browser Storage\nLocal/Session/Cookie" as BS
+participant "Backend\nAuth API" as AUTH
+database "Server Store\nDB/Redis/Session" as STORE
+
+note over MEM
+PoC에서는 구현 단순화를 위해
+Access Token과 Refresh Token을
+JavaScript 메모리 변수에 저장한다.
+end note
+
+note over BS
+PoC는 LocalStorage, SessionStorage,
+Cookie 저장 방식의 운영 표준을
+제시하기 위한 코드가 아니다.
+end note
+
+MEM -> AUTH: POST /api/auth/refresh\nrefreshToken in body
+AUTH -> STORE: refreshToken 또는 jti/hash 대조
+STORE --> AUTH: 유효함
+AUTH --> MEM: newAccessToken
+
+note over AUTH,STORE
+운영 환경에서는 Refresh Token을
+HttpOnly Secure Cookie, Session ID,
+모바일 보안 저장소 등으로 전달할 수 있다.
+
+중요한 것은 저장 위치 자체가 아니라,
+Refresh 요청 시 서버가 검증할 수 있는
+재발급 근거가 요청에 포함되는지이다.
+end note
+
+@enduml

@@ -33,7 +33,8 @@
 | D09 | `D09_stateful_session_flow.puml`                  | Stateful 세션 인증 흐름                           | 서버 세션 기반 Stateful 인증 흐름 설명                                           |
 | D10 | `D10_stateless_jwt_flow.puml`                     | Stateless JWT 인증 흐름                         | Access Token 자체 검증 기반 Stateless 인증 흐름 설명                             |
 | D11 | `D11_hybrid_jwt_refresh_flow.puml`                | Hybrid JWT + Refresh Token 흐름               | Access Token은 Stateless, Refresh Token은 Stateful하게 관리하는 Hybrid 구조 설명 |
-
+D12 | 요청 전 Refresh Single-Flight 흐름 | D12_jwt_pre_refresh_single_flight_flow.puml | API 요청 전 Access Token 만료를 감지하고 Refresh 1회 후 대기 요청을 새 토큰으로 진행하는 정상 개선 흐름
+D13 | PoC 토큰 저장 방식과 운영 적용 경계 | D13_poc_token_storage_boundary.puml | PoC의 메모리 저장 방식은 운영 저장소 설계가 아니며, 핵심은 Refresh 요청의 검증 근거임을 설명
 ---
 
 ## 3. 권장 참조 순서
