@@ -8,6 +8,8 @@ import {
   tryRefreshWithoutToken,
   tryRefreshWithCurrentRefreshToken,
   tryRefreshWithOldRefreshTokenAfterLogout,
+  runCustomerDuplicateRefreshScenario,
+  runCustomerOnlyOneRetryScenario,
   breakRefreshToken,
   tokenStatus,
 } from './api/authApi';
@@ -119,7 +121,19 @@ function App() {
       tryRefreshWithOldRefreshTokenAfterLogout,
     );
   }
+  async function handleCustomerDuplicateRefreshScenario() {
+    await runAction(
+      'TC-08 고객사 현상 재현 A: 요청별 Refresh 중복 발생',
+      runCustomerDuplicateRefreshScenario,
+    );
+  }
 
+  async function handleCustomerOnlyOneRetryScenario() {
+    await runAction(
+      'TC-09 고객사 현상 재현 B: Refresh 1회 / 일부 요청만 복구',
+      runCustomerOnlyOneRetryScenario,
+    );
+  }
   function handleBreakRefreshToken() {
     breakRefreshToken();
     refreshTokenStatus();
@@ -149,27 +163,59 @@ function App() {
       <section className="panel">
         <h2>검증 버튼</h2>
 
-        <div className="button-grid">
-          <button onClick={handleLogin}>1. 로그인</button>
-          <button onClick={handleCallApis}>2. API 8개 동시 호출 / 선 Refresh 검증</button>
-          <button onClick={handleTryRefreshWithAccessToken}>
-            3. Access Token으로 Refresh 시도
-          </button>
-          <button onClick={handleTryRefreshWithoutToken}>
-            4. Refresh Token 없이 Refresh 시도
-          </button>
-          <button onClick={handleBreakRefreshToken}>5. Refresh Token 깨뜨리기</button>
-          <button onClick={handleLogout}>6. 로그아웃</button>
-          <button onClick={handleRefreshWithCurrentRefreshToken}>
-            7. 현재 Refresh Token으로 수동 Refresh
-          </button>
-          <button onClick={handleRefreshWithOldTokenAfterLogout}>
-            8. 로그아웃 전 Refresh Token 재사용 시도
-          </button>
-          <button onClick={handleLocalLogout}>9. 프론트 토큰 제거</button>
-          <button onClick={handleClearLogs}>10. 로그 지우기</button>
-          <button onClick={refreshTokenStatus}>토큰 상태 새로고침</button>
-        </div>
+      <div className="button-grid">
+        <button className="btn btn-primary" onClick={handleLogin}>
+          1. 로그인
+        </button>
+
+        <button className="btn btn-success" onClick={handleCallApis}>
+          2. API 8개 동시 호출 / 선 Refresh 검증
+        </button>
+
+        <button className="btn btn-security" onClick={handleTryRefreshWithAccessToken}>
+          3. Access Token으로 Refresh 시도
+        </button>
+
+        <button className="btn btn-security" onClick={handleTryRefreshWithoutToken}>
+          4. Refresh Token 없이 Refresh 시도
+        </button>
+
+        <button className="btn btn-warning" onClick={handleBreakRefreshToken}>
+          5. Refresh Token 깨뜨리기
+        </button>
+
+        <button className="btn btn-warning" onClick={handleLogout}>
+          6. 로그아웃
+        </button>
+
+        <button className="btn btn-primary" onClick={handleRefreshWithCurrentRefreshToken}>
+          7. 현재 Refresh Token으로 수동 Refresh
+        </button>
+
+        <button className="btn btn-warning" onClick={handleRefreshWithOldTokenAfterLogout}>
+          8. 로그아웃 전 Refresh Token 재사용 시도
+        </button>
+
+        <button className="btn btn-muted" onClick={handleLocalLogout}>
+          9. 프론트 토큰 제거
+        </button>
+
+        <button className="btn btn-muted" onClick={handleClearLogs}>
+          10. 로그 지우기
+        </button>
+
+        <button className="btn btn-danger" onClick={handleCustomerDuplicateRefreshScenario}>
+          11. 현상 재현 A: Refresh 중복
+        </button>
+
+        <button className="btn btn-danger" onClick={handleCustomerOnlyOneRetryScenario}>
+          12. 현상 재현 B: 일부 요청만 복구
+        </button>
+
+        <button className="btn btn-muted" onClick={refreshTokenStatus}>
+          토큰 상태 새로고침
+        </button>
+      </div>
       </section>
 
       <section className="layout">

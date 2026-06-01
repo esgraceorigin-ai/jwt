@@ -7,6 +7,10 @@ import {
   corruptRefreshToken,
   getTokenStatus,
 } from './tokenStore';
+import {
+  reproduceDuplicateRefreshScenario,
+  reproduceOnlyOneRetryScenario,
+} from './customerScenarioApi';
 
 let lastRefreshTokenBeforeLogout = null;
 
@@ -75,4 +79,12 @@ export async function tryRefreshWithCurrentRefreshToken() {
 
 export async function tryRefreshWithOldRefreshTokenAfterLogout() {
   return rawRefreshWithRefreshToken(lastRefreshTokenBeforeLogout);
+}
+
+export async function runCustomerDuplicateRefreshScenario() {
+  return reproduceDuplicateRefreshScenario();
+}
+
+export async function runCustomerOnlyOneRetryScenario() {
+  return reproduceOnlyOneRetryScenario();
 }
