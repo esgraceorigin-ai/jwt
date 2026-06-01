@@ -1,0 +1,50 @@
+{
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-lombok",
+    "vmware.vscode-spring-boot",
+    "vmware.vscode-boot-dev-pack",
+    "vscjava.vscode-spring-boot-dashboard",
+    "vscjava.vscode-spring-initializr",
+    "vscjava.vscode-gradle",
+    "vscjava.vscode-maven",
+
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "dsznajder.es7-react-js-snippets",
+    "xabikos.javascriptsnippets",
+    "xabikos.reactsnippets",
+
+    "jebbs.plantuml",
+    "qhoekman.language-plantuml",
+    "claudineyqr.plantuml-snippets",
+
+    "yzhang.markdown-all-in-one",
+    "shd101wyy.markdown-preview-enhanced",
+
+    "redhat.vscode-yaml",
+    "dotjoshjohnson.xml",
+    "humao.rest-client",
+
+    "eamodio.gitlens",
+    "donjayamanne.githistory",
+
+    "sonarsource.sonarlint-vscode",
+    "usernamehw.errorlens",
+    "minhthai.vscode-todo-parser",
+    "hediet.vscode-drawio"
+  ],
+  "unwantedRecommendations": [
+    "catppuccin.catppuccin-vsc",
+    "dracula-theme.theme-dracula",
+    "nathancuevas.custom-github-dark-dimmed",
+    "pkief.material-icon-theme",
+    "openai.chatgpt",
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "msjsdiag.vscode-react-native"
+  ]
+}
