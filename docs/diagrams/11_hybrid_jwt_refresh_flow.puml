@@ -1,0 +1,55 @@
+@startuml
+title Hybrid JWT 방식: Stateless Access Token + Stateful Refresh Token
+
+actor User as U
+participant "Frontend" as FE
+participant "Auth API" as AUTH
+participant "Protected API" as API
+database "Refresh Token Store\nDB/Redis/Session" as STORE
+
+U -> FE: 로그인 정보 입력
+FE -> AUTH: POST /api/auth/login\nusername/password
+AUTH -> AUTH: 사용자 인증 검증
+AUTH -> AUTH: Access Token 생성\ntype=access
+AUTH -> AUTH: Refresh Token 생성\ntype=refresh
+AUTH -> STORE: Refresh Token 또는 jti/hash 저장
+AUTH --> FE: accessToken + refreshToken 반환\n또는 refresh cookie 설정
+
+U -> FE: 보호 API 요청
+FE -> API: GET /api/protected\nAuthorization: Bearer accessToken
+API -> API: Access Token 서명/만료 검증
+API --> FE: 200 OK
+
+... Access Token 만료 ...
+
+FE -> API: GET /api/protected\nAuthorization: Bearer expiredAccessToken
+API -> API: Access Token 만료 확인
+API --> FE: 401 Unauthorized
+
+FE -> AUTH: POST /api/auth/refresh\nrefreshToken 또는 refresh cookie
+AUTH -> AUTH: Refresh Token 서명/만료/type 검증
+AUTH -> STORE: Refresh Token 저장소 대조\n폐기 여부 확인
+STORE --> AUTH: 유효함
+AUTH -> AUTH: 새 Access Token 생성
+AUTH --> FE: 200 OK\nnewAccessToken
+
+FE -> API: 기존 실패 요청 재시도\nAuthorization: Bearer newAccessToken
+API -> API: 새 Access Token 검증
+API --> FE: 200 OK
+
+note over API
+일반 API 요청은 Access Token 자체 검증으로 처리하므로
+Stateless 성격을 가진다.
+end note
+
+note over AUTH,STORE
+Refresh Token 검증, 로그아웃, 강제만료, Rotation은
+서버 저장소를 사용하므로 Stateful 성격을 가진다.
+end note
+
+note over FE,AUTH
+따라서 Access Token + Refresh Token 구조는
+완전 Stateless라기보다 Hybrid 방식인 경우가 많다.
+end note
+
+@enduml

@@ -1,0 +1,33 @@
+@startuml
+title Stateful 인증 방식: 서버 세션 기반 로그인 흐름
+
+actor User as U
+participant "Browser" as B
+participant "Backend Server" as S
+database "Session Store\nMemory/Redis/DB" as SESSION
+
+U -> B: 로그인 정보 입력
+B -> S: POST /login\nusername/password
+S -> S: 사용자 인증 검증
+S -> SESSION: sessionId 생성 및 로그인 상태 저장
+SESSION --> S: 저장 완료
+S --> B: Set-Cookie: JSESSIONID=sessionId
+
+U -> B: 보호 화면 접근
+B -> S: GET /protected\nCookie: JSESSIONID=sessionId
+S -> SESSION: sessionId 조회
+SESSION --> S: 세션 유효
+S --> B: 200 OK\n보호 데이터 반환
+
+U -> B: 로그아웃
+B -> S: POST /logout\nCookie: JSESSIONID=sessionId
+S -> SESSION: sessionId 삭제
+S --> B: 200 OK\n세션 종료
+
+note over S,SESSION
+Stateful 방식에서는 서버가 로그인 상태를 저장한다.
+클라이언트는 세션 ID를 보내고,
+서버는 세션 저장소를 조회하여 인증 여부를 판단한다.
+end note
+
+@enduml

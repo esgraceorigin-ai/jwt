@@ -1,0 +1,34 @@
+@startuml
+title Stateless 인증 방식: JWT Access Token 기반 API 요청
+
+actor User as U
+participant "Frontend" as FE
+participant "Auth API" as AUTH
+participant "Protected API" as API
+
+U -> FE: 로그인 정보 입력
+FE -> AUTH: POST /api/auth/login\nusername/password
+AUTH -> AUTH: 사용자 인증 검증
+AUTH -> AUTH: Access Token 생성\n서명 + 만료시간 + claim
+AUTH --> FE: accessToken 반환
+
+U -> FE: 보호 API 요청
+FE -> API: GET /api/protected\nAuthorization: Bearer accessToken
+API -> API: JWT 서명 검증
+API -> API: JWT 만료시간 검증
+API -> API: JWT claim 확인
+API --> FE: 200 OK\n보호 데이터 반환
+
+note over API
+Stateless 방식에서는 일반 API 요청마다
+서버 세션 저장소를 조회하지 않고,
+토큰 자체의 서명과 만료시간을 검증한다.
+end note
+
+note over FE,API
+단순 Stateless JWT 구조에서는
+토큰 만료 전 강제 폐기나 로그아웃 통제가 어려울 수 있다.
+이를 보완하려면 블랙리스트나 저장소가 필요하다.
+end note
+
+@enduml
