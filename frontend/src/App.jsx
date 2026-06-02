@@ -4,6 +4,7 @@ import {
   logout,
   logoutLocal,
   callTestApis,
+  callAsyncOrderApis,
   tryRefreshWithAccessToken,
   tryRefreshWithoutToken,
   tryRefreshWithCurrentRefreshToken,
@@ -13,6 +14,7 @@ import {
   breakRefreshToken,
   tokenStatus,
 } from './api/authApi';
+
 import './App.css';
 
 function now() {
@@ -98,6 +100,30 @@ function App() {
     addLog(`[TEST-END] 성공=${successCount}, 실패=${failCount}`);
     refreshTokenStatus();
   }
+
+  async function handleAsyncOrderTest() {
+  addLog('[ASYNC-TEST] 비동기 응답 순서 확인 시작');
+
+  const results = await callAsyncOrderApis();
+
+  const successCount = results.filter((r) => r.status === 'fulfilled').length;
+  const failCount = results.filter((r) => r.status === 'rejected').length;
+
+  const completedOrder = results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => {
+      const data = r.value.data;
+      return `${data.data}(delay=${data.delayMs}ms)`;
+    })
+    .join(', ');
+
+  addLog(`[ASYNC-TEST-END] 성공=${successCount}, 실패=${failCount}`);
+  addLog(`[ASYNC-TEST-RESULT] Promise.allSettled 결과 배열 순서=${completedOrder}`);
+  addLog('[ASYNC-TEST-NOTE] 실제 응답 완료 순서는 화면 로그의 [SUCCESS] 출력 순서와 Network Waterfall을 확인하십시오.');
+
+  refreshTokenStatus();
+  }
+
 
   async function handleTryRefreshWithAccessToken() {
     await runAction('TC-04 Access Token으로 Refresh 시도', tryRefreshWithAccessToken);
@@ -210,6 +236,10 @@ function App() {
 
         <button className="btn btn-danger" onClick={handleCustomerOnlyOneRetryScenario}>
           12. 현상 재현 B: 일부 요청만 복구
+        </button>
+
+        <button className="btn btn-primary" onClick={handleAsyncOrderTest}>
+          13. 비동기 응답 순서 확인
         </button>
 
         <button className="btn btn-muted" onClick={refreshTokenStatus}>

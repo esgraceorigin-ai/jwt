@@ -88,3 +88,13 @@ export async function runCustomerDuplicateRefreshScenario() {
 export async function runCustomerOnlyOneRetryScenario() {
   return reproduceOnlyOneRetryScenario();
 }
+
+export async function callAsyncOrderApis() {
+  const requests = [];
+
+  for (let i = 1; i <= 8; i += 1) {
+    requests.push(api.get(`/test/async${i}`));
+  }
+
+  return Promise.allSettled(requests);
+}
